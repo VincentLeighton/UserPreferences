@@ -6,10 +6,12 @@ interface User {
   id: string;
   username: string;
   preferences: {
-    lightdark: boolean;
-    text: boolean;
+    communicationPreferences: {
+      text: boolean;
     phone: boolean;
     email: boolean;
+    },
+    darkMode: boolean;
     favoriteColors: string[];
   };
 }
@@ -30,22 +32,52 @@ function App() {
       });
   }, []);
 
-  useEffect(() => {
+  const handleUpdatePreferences = (username: string) => {
+    const userToUpdate = users.find((user) => user.username === username);
+    if (!userToUpdate) {
+      console.error(`User with username ${username} not found`);
+      return;
+    }
+
+    const updatedPreferences = {
+      ...userToUpdate.preferences,
+      // darkMode: !userToUpdate.preferences.darkMode, // Example: toggling darkMode
+      // text: !userToUpdate.preferences.text, // Example: toggling text preference
+      // phone: !userToUpdate.preferences.phone, // Example: toggling phone preference
+      // email: !userToUpdate.preferences.email, // Example: toggling email preference
+    };
+
+    const updatedUser = { ...userToUpdate, preferences: updatedPreferences };
+
     axios
-      .patch<User[]>(apiString+"users")
+      .patch<User[]>(`${apiString}users/${userToUpdate.id}/preferences`, updatedUser)
       .then((response) => {
-        setUsers(response.data);
-        console.log('response', response.data);
-        
+        setUsers((prevUsers) =>
+          prevUsers.map((user) =>
+            user.id === userToUpdate.id ? { ...user, ...updatedUser } : user
+          )
+        );
+        console.log("Updated user preferences:", response.data);
       })
       .catch((error) => {
-        console.error("Error fetching users:", error);
+        console.error("Error updating user preferences:", error);
       });
-  }, []);
+  };
 
-  const handleUpdatePreferences = (username: string) => {
-    console.log(`Update preferences for ${username}`);
-    // Logic to update user preferences can be added here
+  const handleAddFavoriteColor = (username: string, color: string) => {
+    setUsers((prevUsers) =>
+      prevUsers.map((user) =>
+        user.username === username
+          ? {
+              ...user,
+              preferences: {
+                ...user.preferences,
+                favoriteColors: [...user.preferences.favoriteColors, color],
+              },
+            }
+          : user
+      )
+    );
   };
 
   return (
@@ -71,8 +103,7 @@ function App() {
                     type="radio"
                     name={`theme-${index}`}
                     value="light"
-                    checked={user.preferences.lightdark}
-                    readOnly
+                    defaultChecked={!user.preferences.darkMode}
                   />
                   Light
                 </label>
@@ -81,8 +112,7 @@ function App() {
                     type="radio"
                     name={`theme-${index}`}
                     value="dark"
-                    checked={user.preferences.lightdark}
-                    readOnly
+                    defaultChecked={user.preferences.darkMode}
                   />
                   Dark
                 </label>
@@ -91,7 +121,7 @@ function App() {
                 <label>
                   <input
                     type="checkbox"
-                    checked={user.preferences.text}
+                    defaultChecked={user.preferences.communicationPreferences.text}
                     readOnly
                   />
                   Text
@@ -99,7 +129,7 @@ function App() {
                 <label>
                   <input
                     type="checkbox"
-                    checked={user.preferences.phone}
+                    defaultChecked={user.preferences.communicationPreferences.phone}
                     readOnly
                   />
                   Phone
@@ -107,7 +137,7 @@ function App() {
                 <label>
                   <input
                     type="checkbox"
-                    checked={user.preferences.email}
+                    defaultChecked={user.preferences.communicationPreferences.email}
                     readOnly
                   />
                   Email
@@ -119,6 +149,24 @@ function App() {
                     <li key={colorIndex}>{color}</li>
                   ))}
                 </ol>
+                <select
+                  onChange={(e) =>
+                    handleAddFavoriteColor(user.username, e.target.value)
+                  }
+                  defaultValue=""
+                >
+                  <option value="" disabled>
+                    Add a color
+                  </option>
+                    <option value="Red">Red</option>
+                    <option value="Blue">Blue</option>
+                    <option value="Yellow">Yellow</option>
+                    <option value="White">White</option>
+                    <option value="Black">Black</option>
+                    <option value="Pink">Pink</option>
+                    <option value="Green">Green</option>
+                    <option value="CornflowerBlue">Cornflower Blue</option>
+                </select>
               </td>
               <td>
                 <button onClick={() => handleUpdatePreferences(user.username)}>
