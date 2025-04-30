@@ -8,8 +8,8 @@ interface User {
   preferences: {
     communicationPreferences: {
       text: boolean;
-    phone: boolean;
-    email: boolean;
+      email: boolean;
+      phone: boolean;
     },
     darkMode: boolean;
     favoriteColors: string[];
@@ -41,10 +41,14 @@ function App() {
 
     const updatedPreferences = {
       ...userToUpdate.preferences,
-      // darkMode: !userToUpdate.preferences.darkMode, // Example: toggling darkMode
-      // text: !userToUpdate.preferences.text, // Example: toggling text preference
-      // phone: !userToUpdate.preferences.phone, // Example: toggling phone preference
-      // email: !userToUpdate.preferences.email, // Example: toggling email preference
+      darkMode: !userToUpdate.preferences.darkMode, // Example: toggling darkMode
+      favoriteColors: userToUpdate.preferences.favoriteColors, // Keeping the same favorite colors
+      communicationPreferences: {
+        ...userToUpdate.preferences.communicationPreferences,
+        text: userToUpdate.preferences.communicationPreferences.text,
+        phone: userToUpdate.preferences.communicationPreferences.phone,
+        email: userToUpdate.preferences.communicationPreferences.email,
+      },
     };
 
     const updatedUser = { ...userToUpdate, preferences: updatedPreferences };
@@ -78,6 +82,42 @@ function App() {
           : user
       )
     );
+  };
+
+  const handleSortFavoriteColors = (username: string) => {
+    setUsers((prevUsers) =>
+      prevUsers.map((user) => {
+        if (user.username === username) {
+          const isSorted = user.preferences.favoriteColors.every(
+            (color, index, arr) => index === 0 || arr[index - 1] <= color
+          );
+          return {
+            ...user,
+            preferences: {
+              ...user.preferences,
+              favoriteColors: isSorted
+                ? [...user.preferences.favoriteColors]
+                : [...user.preferences.favoriteColors].sort(),
+            },
+          };
+        }
+        return user;
+      })
+    );
+  };
+
+  const handleDeleteUser = (userId: string) => {
+    axios
+      .delete(`${apiString}users/${userId}`)
+      .then(() => {
+        setUsers((prevUsers) =>
+          prevUsers.filter((user) => user.username !== userId)
+        );
+        console.log(`User ${userId} deleted successfully.`);
+      })
+      .catch((error) => {
+        console.error(`Error deleting user ${userId}:`, error);
+      });
   };
 
   return (
@@ -122,7 +162,7 @@ function App() {
                   <input
                     type="checkbox"
                     defaultChecked={user.preferences.communicationPreferences.text}
-                    readOnly
+                    onClick={() => user.preferences.communicationPreferences.text = !user.preferences.communicationPreferences.text}
                   />
                   Text
                 </label>
@@ -130,7 +170,7 @@ function App() {
                   <input
                     type="checkbox"
                     defaultChecked={user.preferences.communicationPreferences.phone}
-                    readOnly
+                    onClick={() => user.preferences.communicationPreferences.phone = !user.preferences.communicationPreferences.phone}
                   />
                   Phone
                 </label>
@@ -138,12 +178,15 @@ function App() {
                   <input
                     type="checkbox"
                     defaultChecked={user.preferences.communicationPreferences.email}
-                    readOnly
+                    onClick={() => user.preferences.communicationPreferences.email = !user.preferences.communicationPreferences.email}
                   />
                   Email
                 </label>
               </td>
               <td>
+                <button onClick={() => handleSortFavoriteColors(user.username)}>
+                  Sort Colors
+                </button>
                 <ol>
                   {user.preferences.favoriteColors.map((color, colorIndex) => (
                     <li key={colorIndex}>{color}</li>
@@ -171,6 +214,9 @@ function App() {
               <td>
                 <button onClick={() => handleUpdatePreferences(user.username)}>
                   Update Preferences
+                </button>
+                <button onClick={() => handleDeleteUser(user.id)}>
+                  Delete User
                 </button>
               </td>
             </tr>
